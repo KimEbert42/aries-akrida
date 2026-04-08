@@ -165,14 +165,12 @@ class CredoHolder(BaseHolder):
 
     def receive_credential_prepare(self):
         self.run_command({"cmd": "receiveCredential"})
-        self.read_json_line()
 
     def receive_credential(self):
-        pass
+        self.read_json_line()
 
     def presentation_exchange_prepare(self):
         self.run_command({"cmd": "presentationExchange"})
-        self.read_json_line()
 
     def presentation_exchange(self):
         self.read_json_line()
@@ -187,7 +185,6 @@ class CredoHolder(BaseHolder):
 
     def receive_message_prepare(self):
         self.run_command({"cmd": "receiveMessage"})
-        self.read_json_line()
 
     def receive_message(self):
-        pass
+        self.read_json_line()
