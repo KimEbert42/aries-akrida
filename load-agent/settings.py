@@ -49,6 +49,11 @@ class Settings(object):
     # ISSUER_API_KEY: str = os.getenv("ISSUER_API_KEY", None)
     # ISSUER_API_TOKEN: str = os.getenv("ISSUER_API_TOKEN", None)
     ISSUER_HEADERS: str = json.loads(os.getenv("ISSUER_HEADERS"))
+
+    # Holder
+    HOLDER_URL: str = os.getenv("HOLDER_URL")
+    HOLDER_TYPE: str = os.getenv("HOLDER_TYPE", "credo")
+    HOLDER_HEADERS: str = json.loads(os.getenv("HOLDER_HEADERS", "{}"))
     
     # Handshake protocols to use
     HANDSHAKE_PROTOCOLS: list = [
