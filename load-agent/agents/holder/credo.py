@@ -21,36 +21,40 @@ class CredoHolder(BaseHolder):
         self.errors = 0
         self.with_mediation = None
 
-    def start(self, with_mediation=True, reinstantiate=False):
+    def start(self, withMediation=True, reinstantiate=False):
         if self.port is not None:
             portmanager.return_port(self.port)
             self.port = None
 
-        self.port = portmanager.get_port()
-        self.errors = 0
-        self.agent = subprocess.Popen(
-            ["node", "--max-old-space-size=128", "dist/agent.js"],
-            bufsize=0,
-            universal_newlines=True,
-            stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE,
-            stderr=sys.stderr,
-            shell=False,
-        )
+        try:
+            self.port = portmanager.get_port()
+            self.errors = 0
+            self.agent = subprocess.Popen(
+                ["node", "--max-old-space-size=128", "dist/agent.js"],
+                bufsize=0,
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                stderr=sys.stderr,
+                shell=False,
+            )
 
-        self.run_command(
-            {
-                "cmd": "start",
-                "withMediation": with_mediation,
-                "port": self.port,
-                "agentConfig": self.agent_config if reinstantiate else None,
-            }
-        )
+            self.run_command(
+                {
+                    "cmd": "start",
+                    "withMediation": withMediation,
+                    "port": self.port,
+                    "agentConfig": self.agent_config if reinstantiate else None,
+                }
+            )
 
-        self.agent_config = self.read_json_line()["result"]
+            self.agent_config = self.read_json_line()["result"]
 
-        if self.agent is None or self.agent.poll() is not None:
-            raise Exception("unable to start")
+            if self.agent is None or self.agent.poll() is not None:
+                raise Exception("unable to start")
+        except Exception as e:
+            self.shutdown()
+            raise e
 
     def shutdown(self):
         try:
