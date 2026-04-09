@@ -6,6 +6,13 @@ from ..base import BaseAgent
 
 
 class BaseVerifier(BaseAgent):
+    """
+    Base class for a credential verifier agent.
+
+    Verifier agents request holders to present credentials and verify
+    that the presentations meet the specified requirements.
+    """
+
     def __init__(self):
         super().__init__()
         self.label = "Test Verifier"
@@ -15,11 +22,27 @@ class BaseVerifier(BaseAgent):
 
     @abstractmethod
     def request_verification(self, connection_id):
-        # return r['presentation_exchange_id']
-        raise NotImplementedError
+        """
+        Sends a presentation request to a holder to verify their credentials.
+
+        Args:
+            connection_id (str): The established connection ID with the holder.
+
+        Returns:
+            str: The presentation exchange ID for tracking the verification.
+        """
 
     @abstractmethod
     def verify_verification(self, presentation_exchange_id):
-        # return True on success
-        # Throw Exception on failure
-        raise NotImplementedError
+        """
+        Checks the status and result of a presentation exchange.
+
+        Args:
+            presentation_exchange_id (str): The ID returned from request_verification.
+
+        Returns:
+            bool: True if the presentation was valid and verified.
+
+        Raises:
+            Exception: If verification fails or times out.
+        """
