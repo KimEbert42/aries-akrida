@@ -4,9 +4,10 @@ import requests
 from models import AnonCredsRevocation, CredentialProposalV1, IssueCredentialV1
 
 from .base import BaseIssuer
+from ..base_acapy import BaseAcapyAgent
 
 
-class AcapyIssuer(BaseIssuer):
+class AcapyIssuer(BaseIssuer, BaseAcapyAgent):
     def issue_credential(self, connection_id):
         schema_parts = self.schema_id.split(":")
 

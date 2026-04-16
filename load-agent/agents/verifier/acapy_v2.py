@@ -7,9 +7,10 @@ from models import RequestPresentationV2 as RequestPresentation
 from settings import Settings
 
 from .base import BaseVerifier
+from ..base_acapy import BaseAcapyAgent
 
 
-class AcapyVerifier(BaseVerifier):
+class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
     def __init__(self):
         super().__init__()
         self.cred_attributes = Settings.CRED_ATTR

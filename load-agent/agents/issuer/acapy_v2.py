@@ -14,9 +14,10 @@ from models import (
 from settings import Settings
 
 from .base import BaseIssuer
+from ..base_acapy import BaseAcapyAgent
 
 
-class AcapyIssuer(BaseIssuer):
+class AcapyIssuer(BaseIssuer, BaseAcapyAgent):
     def __init__(self):
         super().__init__()
         if Settings.IS_ANONCREDS:
