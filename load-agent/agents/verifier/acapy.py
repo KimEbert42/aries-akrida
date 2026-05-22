@@ -67,7 +67,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                 "Encountered JSONDecodeError while parsing the request: ", r.text
             )
 
-        return presentation_request
+        return presentation_request["presentation_exchange_id"]
 
     def verify_verification(self, presentation_exchange_id):
         # Want to do a for loop
