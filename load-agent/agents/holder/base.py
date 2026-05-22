@@ -2,10 +2,9 @@ from abc import abstractmethod
 
 from settings import Settings
 
-from ..base import BaseAgent
+from abc import ABC, abstractmethod
 
-
-class BaseHolder(BaseAgent):
+class BaseHolder(ABC):
     """
     Base class for a credential holder/wallet agent.
 
