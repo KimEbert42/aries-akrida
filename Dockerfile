@@ -34,8 +34,12 @@ COPY pyproject.toml ./
 COPY pdm.lock ./
 RUN pdm sync --no-self
 
-# App code
+# JS agent dependencies (cached separately)
 WORKDIR ${LOADDIR}
+COPY ./load-agent/package.json ./load-agent/yarn.lock ./
+RUN yarn install
+
+# App code
 ADD ./load-agent ${LOADDIR}/
 
 # Conditionally copy vdr proxy code
@@ -46,7 +50,6 @@ RUN if [ "$INCLUDE_VDR" = "true" ]; then \
     fi
 
 # Build JS agent
-RUN yarn install
 RUN yarn tsc
 
 # Default command

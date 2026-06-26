@@ -23,7 +23,9 @@ class BaseAcapyAgent(BaseAgent):
         """
         r = requests.post(
             f"{self.agent_url}/out-of-band/create-invitation?auto_accept=true",
-            json={"handshake_protocols": Settings.HANDSHAKE_PROTOCOLS},
+            json={
+                "handshake_protocols": Settings.HANDSHAKE_PROTOCOLS,
+                },
             headers=self.headers,
         )
         invitation = r.json()

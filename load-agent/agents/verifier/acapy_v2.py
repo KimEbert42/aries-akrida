@@ -2,7 +2,14 @@ import time
 from json.decoder import JSONDecodeError
 
 import requests
-from models import AnonCredsPresReq, IndyPresReq, ProofRequest
+from models import (
+    AnonCredsPresReq,
+    AnonCredsFilter,
+    IndyPresReq,
+    ProofRequest,
+    Filter,
+    IndyFilter,
+)
 from models import RequestPresentationV2 as RequestPresentation
 from settings import Settings
 
@@ -14,12 +21,19 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
     def __init__(self):
         super().__init__()
         self.cred_attributes = Settings.CRED_ATTR
+        if Settings.IS_ANONCREDS:
+            self.filter = AnonCredsFilter(anoncreds=Filter(cred_def_id=self.cred_def_id))
+        else:
+            self.filter = IndyFilter(indy=Filter(cred_def_id=self.cred_def_id))
         
     def get_presentation_request(self):
         proof_request = ProofRequest(
             name="PerfScore",
             requested_attributes={
-                item["name"]: {"name": item["name"]} for item in self.cred_attributes
+                item["name"]: {
+                    "name": item["name"],
+                    "restrictions": [{"cred_def_id": self.cred_def_id}]
+                    } for item in self.cred_attributes
             },
             requested_predicates={},
             version="1.0",
@@ -68,34 +82,64 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
             )
 
     def verify_verification(self, pres_ex_id):
-        # Want to do a for loop
         try:
             for _ in range(self.verifiedTimeoutSeconds):
                 r = requests.get(
                     f"{self.agent_url}/present-proof-2.0/records/{pres_ex_id}",
                     headers=self.headers,
                 )
+                if r.status_code != 200:
+                    raise Exception(
+                        f"Failed to get presentation record: status {r.status_code}, body: {r.text}"
+                    )
                 presentation_json = r.json()
-                if (
-                    presentation_json["state"] != "request_sent"
-                    and presentation_json["state"] != "presentation_received"
-                ):
+                state = presentation_json["state"]
+                if state == "done" or state == "abandoned":
+                    break
+                if state not in ("request-sent", "presentation-received"):
                     break
                 time.sleep(1)
+            else:
+                raise TimeoutError(
+                    f"Presentation verification timed out after {self.verifiedTimeoutSeconds}s, "
+                    f"last state: '{presentation_json['state']}'"
+                )
 
-            r_verify = requests.post(
-                f"{self.agent_url}/present-proof-2.0/records/{pres_ex_id}/verify-presentation",
-                headers=self.headers,
-            )
+            state = presentation_json["state"]
 
-            if r_verify.json()["verified"] != "true":
+            if state == "done":
+                verified = presentation_json.get("verified")
+                if isinstance(verified, str):
+                    verified = verified.lower() == "true"
+            elif state == "presentation-received":
+                r_verify = requests.post(
+                    f"{self.agent_url}/present-proof-2.0/records/{pres_ex_id}/verify-presentation",
+                    headers=self.headers,
+                )
+                if r_verify.status_code != 200:
+                    raise Exception(
+                        f"Failed to verify presentation (state: '{state}'): {r_verify.text}. "
+                        f"Holder likely has no credential matching cred_def_id={self.cred_def_id}, "
+                        f"or format mismatch (IS_ANONCREDS={Settings.IS_ANONCREDS})"
+                    )
+                verified = r_verify.json()["verified"]
+            elif state == "abandoned":
+                raise Exception(
+                    f"Presentation exchange {pres_ex_id} is in abandoned state"
+                )
+            else:
+                raise Exception(
+                    f"Unexpected presentation state after polling: '{state}'"
+                )
+
+            if verified is not True:
                 raise AssertionError(
-                    f"Presentation was not successfully verified. Presentation in state {presentation_json['state']}"
+                    f"Presentation was not successfully verified. Presentation in state {state}"
                 )
 
             return True
 
         except JSONDecodeError as e:
             raise Exception(
-                "Encountered JSONDecodeError while getting the presentation record: ", e
+                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {r.text if 'r' in locals() else 'N/A'}"
             )

@@ -1,3 +1,4 @@
+import os
 from abc import abstractmethod
 
 from settings import Settings
@@ -19,6 +20,11 @@ class BaseVerifier(BaseAgent):
         self.agent_url = Settings.VERIFIER_URL
         self.headers = Settings.VERIFIER_HEADERS | {"Content-Type": "application/json"}
         self.verifiedTimeoutSeconds = Settings.VERIFIED_TIMEOUT_SECONDS
+        self.schema_id = Settings.SCHEMA_ID
+        self.cred_def_id = Settings.CRED_DEF_ID
+        self.cred_attributes = Settings.CRED_ATTR
+
+        print(f"[{self.__class__.__name__}] VERIFIED_TIMEOUT_SECONDS = {self.verifiedTimeoutSeconds} (from env: {os.getenv('VERIFIED_TIMEOUT_SECONDS', 'NOT SET')})")
 
     @abstractmethod
     def request_verification(self, connection_id):

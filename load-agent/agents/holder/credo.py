@@ -177,7 +177,7 @@ class CredoHolder(BaseHolder):
         self.run_command({"cmd": "presentationExchange"})
 
     def presentation_exchange(self):
-        self.read_json_line()
+        return self.read_json_line()
 
     def ping_mediator(self):
         self.run_command({"cmd": "ping_mediator"})

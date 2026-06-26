@@ -70,7 +70,6 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
         return presentation_request["presentation_exchange_id"]
 
     def verify_verification(self, presentation_exchange_id):
-        # Want to do a for loop
         iteration = 0
         try:
             while iteration < self.verifiedTimeoutSeconds:
@@ -78,25 +77,34 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                     f"{self.agent_url}/present-proof/records/{presentation_exchange_id}",
                     headers=self.headers,
                 )
+                if r.status_code != 200:
+                    raise Exception(
+                        f"Failed to get presentation record: status {r.status_code}, body: {r.text}"
+                    )
                 presentation_record = r.json()
                 presentation_state = presentation_record["state"]
                 if (
                     presentation_state != "request_sent"
                     and presentation_state != "presentation_received"
                 ):
-                    "request_sent" and presentation_state != "presentation_received"
                     break
                 iteration += 1
                 time.sleep(1)
 
-            if presentation_record["verified"] != "true":
+            if iteration >= self.verifiedTimeoutSeconds:
+                raise TimeoutError(
+                    f"Presentation verification timed out after {self.verifiedTimeoutSeconds}s, "
+                    f"last state: '{presentation_state}'"
+                )
+
+            if presentation_record["verified"] is not True:
                 raise AssertionError(
                     f"Presentation was not successfully verified. Presentation in state {presentation_state}"
                 )
 
         except JSONDecodeError as e:
             raise Exception(
-                "Encountered JSONDecodeError while getting the presentation record: ", e
+                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {r.text if 'r' in locals() else 'N/A'}"
             )
 
         return True
