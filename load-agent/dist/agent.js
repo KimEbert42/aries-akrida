@@ -1,32 +1,31 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const anoncreds_1 = require("@credo-ts/anoncreds");
-const indy_vdr_1 = require("@credo-ts/indy-vdr");
-const askar_1 = require("@credo-ts/askar");
-const core_1 = require("@credo-ts/core");
-const anoncreds_nodejs_1 = require("@hyperledger/anoncreds-nodejs");
-const aries_askar_nodejs_1 = require("@hyperledger/aries-askar-nodejs");
-const indy_vdr_nodejs_1 = require("@hyperledger/indy-vdr-nodejs");
-const node_1 = require("@credo-ts/node");
-var config = require('./config.js');
-var deferred = require('deferred');
-var process = require('process');
-var readline = require('readline');
+import { AnonCredsDidCommCredentialFormatService, AnonCredsModule, AnonCredsDidCommProofFormatService, LegacyIndyDidCommCredentialFormatService, LegacyIndyDidCommProofFormatService, } from '@credo-ts/anoncreds';
+import { IndyVdrAnonCredsRegistry, IndyVdrIndyDidResolver, IndyVdrModule, IndyVdrIndyDidRegistrar, } from '@credo-ts/indy-vdr';
+import { AskarModule } from '@credo-ts/askar';
+import { DidsModule, KeyDidRegistrar, KeyDidResolver, WebDidResolver, Agent, DidRepository, ConsoleLogger, LogLevel, } from '@credo-ts/core';
+import { DidCommModule, DidCommConnectionsModule, DidCommProofsModule, DidCommCredentialsModule, DidCommMediationRecipientModule, DidCommMediatorPickupStrategy, DidCommCredentialEventTypes, DidCommProofEventTypes, DidCommMimeType, DidCommTransportEventTypes, DidCommTrustPingEventTypes, DidCommDidExchangeState, DidCommConnectionEventTypes, DidCommBasicMessageEventTypes, DidCommCredentialState, DidCommProofState, DidCommHttpOutboundTransport, DidCommWsOutboundTransport, } from '@credo-ts/didcomm';
+import { anoncreds } from '@hyperledger/anoncreds-nodejs';
+import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
+import { indyVdr } from '@hyperledger/indy-vdr-nodejs';
+import { agentDependencies } from '@credo-ts/node';
+import config from './config.cjs';
+import deferred from 'deferred';
+import process from 'process';
+import readline from 'readline';
 /*
   Remap all logging to stderr
 */
-class ConsoleError extends core_1.ConsoleLogger {
+class ConsoleError extends ConsoleLogger {
     constructor(...args) {
         super(...args);
         // Map our log levels to console levels
         this.consoleLogMap = {
-            [core_1.LogLevel.test]: 'error',
-            [core_1.LogLevel.trace]: 'error',
-            [core_1.LogLevel.debug]: 'error',
-            [core_1.LogLevel.info]: 'error',
-            [core_1.LogLevel.warn]: 'error',
-            [core_1.LogLevel.error]: 'error',
-            [core_1.LogLevel.fatal]: 'error',
+            [LogLevel.Test]: 'error',
+            [LogLevel.Trace]: 'error',
+            [LogLevel.Debug]: 'error',
+            [LogLevel.Info]: 'error',
+            [LogLevel.Warn]: 'error',
+            [LogLevel.Error]: 'error',
+            [LogLevel.Fatal]: 'error',
         };
     }
 }
@@ -46,7 +45,7 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
     try {
         let mediation_url = config.mediation_url;
         let endpoints = ['http://' + config.agent_ip + ':' + port];
-        const logLevel = parseInt(process.env.AGENT_LOGGING_LEVEL) || core_1.LogLevel.off;
+        const logLevel = parseInt(process.env.AGENT_LOGGING_LEVEL) || LogLevel.Off;
         process.stderr.write('Agent Log Level: ' + parseInt(process.env.AGENT_LOGGING_LEVEL) + '\n');
         if (!agentConfig || agentConfig === null || agentConfig.length === 0) {
             agentConfig = {
@@ -60,62 +59,58 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
                 mediation_url: mediation_url,
                 autoAcceptInvitation: true,
                 logger: new ConsoleError(logLevel),
-                didCommMimeType: core_1.DidCommMimeType.V1,
+                didCommMimeType: DidCommMimeType.V1,
                 storage: {
                     type: 'sqlite',
                     config: { memory: true }, // ephemeral
                 },
             };
         }
-        const legacyIndyCredentialFormat = new anoncreds_1.LegacyIndyCredentialFormatService();
-        const legacyIndyProofFormat = new anoncreds_1.LegacyIndyProofFormatService();
-        const anonCredsCredentialFormatService = new anoncreds_1.AnonCredsCredentialFormatService();
-        const anonCredsProofFormatService = new anoncreds_1.AnonCredsProofFormatService();
+        const legacyIndyCredentialFormat = new LegacyIndyDidCommCredentialFormatService();
+        const legacyIndyProofFormat = new LegacyIndyDidCommProofFormatService();
+        const anonCredsCredentialFormatService = new AnonCredsDidCommCredentialFormatService();
+        const anonCredsProofFormatService = new AnonCredsDidCommProofFormatService();
         let modules = {
-            indyVdr: new indy_vdr_1.IndyVdrModule({
-                indyVdr: indy_vdr_nodejs_1.indyVdr,
-                networks: [config.ledger]
+            indyVdr: new IndyVdrModule({
+                indyVdr,
+                networks: [{
+                        genesisTransactions: config.ledger.genesisTransactions,
+                        indyNamespace: config.ledger.indyNamespace,
+                        isProduction: config.ledger.isProduction,
+                        connectOnStartup: config.ledger.connectOnStartup,
+                    }],
             }),
-            askar: new askar_1.AskarModule({
-                ariesAskar: aries_askar_nodejs_1.ariesAskar,
+            askar: new AskarModule({
+                askar: ariesAskar,
+                store: {
+                    id: agentConfig.walletConfig.id,
+                    key: agentConfig.walletConfig.key,
+                },
             }),
             // mediator: new MediatorModule({
             //   autoAcceptMediationRequests: true,
             // }),
-            mediationRecipient: new core_1.MediationRecipientModule({
-                mediatorInvitationUrl: mediation_url,
-                mediatorPickupStrategy: core_1.MediatorPickupStrategy.Implicit,
+            anoncreds: new AnonCredsModule({
+                registries: [new IndyVdrAnonCredsRegistry()],
+                anoncreds
             }),
-            anoncreds: new anoncreds_1.AnonCredsModule({
-                registries: [new indy_vdr_1.IndyVdrAnonCredsRegistry()],
-                anoncreds: anoncreds_nodejs_1.anoncreds
+            didcomm: new DidCommModule({
+                connections: new DidCommConnectionsModule({
+                    autoAcceptConnections: true,
+                }),
+                proofs: new DidCommProofsModule({}),
+                credentials: new DidCommCredentialsModule({}),
+                mediationRecipient: new DidCommMediationRecipientModule({}),
+                transports: {
+                    outbound: [
+                        new DidCommHttpOutboundTransport(),
+                        new DidCommWsOutboundTransport(),
+                    ],
+                },
             }),
-            connections: new core_1.ConnectionsModule({
-                autoAcceptConnections: true,
-            }),
-            proofs: new core_1.ProofsModule({
-                proofProtocols: [
-                    new anoncreds_1.V1ProofProtocol({
-                        indyProofFormat: legacyIndyProofFormat,
-                    }),
-                    new core_1.V2ProofProtocol({
-                        proofFormats: [legacyIndyProofFormat, anonCredsProofFormatService],
-                    }),
-                ],
-            }),
-            credentials: new core_1.CredentialsModule({
-                credentialProtocols: [
-                    new anoncreds_1.V1CredentialProtocol({
-                        indyCredentialFormat: legacyIndyCredentialFormat,
-                    }),
-                    new core_1.V2CredentialProtocol({
-                        credentialFormats: [legacyIndyCredentialFormat, anonCredsCredentialFormatService],
-                    }),
-                ],
-            }),
-            dids: new core_1.DidsModule({
-                registrars: [new indy_vdr_1.IndyVdrIndyDidRegistrar(), new core_1.KeyDidRegistrar()],
-                resolvers: [new indy_vdr_1.IndyVdrIndyDidResolver(), new core_1.KeyDidResolver(), new core_1.WebDidResolver()],
+            dids: new DidsModule({
+                registrars: [new IndyVdrIndyDidRegistrar(), new KeyDidRegistrar()],
+                resolvers: [new IndyVdrIndyDidResolver(), new KeyDidResolver(), new WebDidResolver()],
             }),
         };
         // configure mediator or endpoints
@@ -123,20 +118,15 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
             delete agentConfig['endpoints'];
         }
         else {
-            delete modules['mediationRecipient'];
         }
         // A new instance of an agent is created here
-        const agent = new core_1.Agent({
+        const agent = new Agent({
             config: agentConfig,
-            dependencies: node_1.agentDependencies,
+            dependencies: agentDependencies,
             modules: modules
         });
-        const wsTransport = new core_1.WsOutboundTransport();
-        const httpTransport = new core_1.HttpOutboundTransport();
         // Register a simple `WebSocket` outbound transport
-        agent.registerOutboundTransport(wsTransport);
         // Register a simple `Http` outbound transport
-        agent.registerOutboundTransport(httpTransport);
         if (withMediation) {
             // wait for mediation to be configured
             let timeout = config.verified_timeout_seconds * 1000;
@@ -147,12 +137,12 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
             var onConnectedMediation = async (event) => {
                 let mediatorConnection = null;
                 let interval = 100;
-                for (let i = 0; i < (timeout - interval); i++) {
+                for (let i = 0; i < Number(timeout - interval); i++) {
                     // OutboundWebSocketOpenedEvent occurs before mediation is finalized, so we want to check
                     // for the default mediation connection until it is not null or we hit a timeout
                     // we sleep a small amount between requests just to be kind to our CPU. 
                     await new Promise(r => setTimeout(r, interval));
-                    mediatorConnection = await agent.mediationRecipient.findDefaultMediatorConnection();
+                    mediatorConnection = await agent.didcomm.mediationRecipient.findDefaultMediatorConnection();
                     if (mediatorConnection != null) {
                         break;
                     }
@@ -160,27 +150,26 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
                 if (event.payload.connectionId === mediatorConnection?.id) {
                     def.resolve(true);
                     // we no longer need to listen to the event
-                    agent.events.off(core_1.TransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
+                    agent.events.off(DidCommTransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
                 }
             };
-            agent.events.on(core_1.TransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
+            agent.events.on(DidCommTransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
             // Initialize the agent
             await agent.initialize();
+            // Mediation URL can be set via config
             if (config.pickup_strategy === 'pickupv2-live') {
                 process.stderr.write('Pickup strategy: pickupv2-live');
-                await agent.mediationRecipient.initiateMessagePickup(undefined, core_1.MediatorPickupStrategy.PickUpV2LiveMode);
+                await agent.didcomm.mediationRecipient.initiateMessagePickup(undefined, DidCommMediatorPickupStrategy.PickUpV2LiveMode);
             }
             // wait for ws to be configured
             let value = await Promise.race([TimeDelay, def.promise]);
             if (!value) {
                 // we no longer need to listen to the event in case of failure
-                agent.events.off(core_1.TransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
+                agent.events.off(DidCommTransportEventTypes.OutboundWebSocketOpenedEvent, onConnectedMediation);
                 throw 'Mediator timeout!';
             }
         }
         else {
-            const httpInbound = new node_1.HttpInboundTransport({ port: port });
-            agent.registerInboundTransport(httpInbound);
             await agent.initialize();
         }
         return [agent, agentConfig];
@@ -198,24 +187,24 @@ const pingMediator = async (agent) => {
     });
     var def = deferred();
     var onPingResponse = async (event) => {
-        const mediatorConnection = await agent.mediationRecipient.findDefaultMediatorConnection();
+        const mediatorConnection = await agent.didcomm.mediationRecipient.findDefaultMediatorConnection();
         if (event.payload.connectionRecord.id === mediatorConnection?.id) {
             // we no longer need to listen to the event
-            agent.events.off(core_1.TrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
+            agent.events.off(DidCommTrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
             def.resolve(true);
         }
     };
-    agent.events.on(core_1.TrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
-    let mediatorConnection = await agent.mediationRecipient.findDefaultMediatorConnection();
+    agent.events.on(DidCommTrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
+    let mediatorConnection = await agent.didcomm.mediationRecipient.findDefaultMediatorConnection();
     if (mediatorConnection) {
         //await agent.connections.acceptResponse(mediatorConnection.id)
-        await agent.connections.sendPing(mediatorConnection.id, {});
+        await agent.didcomm.connections.sendPing(mediatorConnection.id, {});
     }
     // wait for ping response
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // we no longer need to listen to the event in case of failure
-        agent.events.off(core_1.TrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
+        agent.events.off(DidCommTrustPingEventTypes.TrustPingResponseReceivedEvent, onPingResponse);
         throw 'Mediator timeout!';
     }
 };
@@ -232,24 +221,24 @@ let receiveInvitation = async (agent, invitationUrl) => {
     var onConnection = async (event) => {
         {
             let payload = event.payload;
-            if (payload.connectionRecord.state === core_1.DidExchangeState.Completed) {
+            if (payload.connectionRecord.state === DidCommDidExchangeState.Completed) {
                 // the connection is now ready for usage in other protocols!
                 // console.log(`Connection for out-of-band id ${payload.connectionRecord.outOfBandId} completed`)
                 // Custom business logic can be included here
                 // In this example we can send a basic message to the connection, but
                 // anything is possible
-                agent.events.off(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+                agent.events.off(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
                 def.resolve(true);
             }
         }
     };
-    agent.events.on(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+    agent.events.on(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
     const { outOfBandRecord } = await agent.oob.receiveInvitationFromUrl(invitationUrl);
     // wait for connection
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // we no longer need to listen to the event in case of failure
-        agent.events.off(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+        agent.events.off(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
         throw 'Connection timeout!';
     }
     return outOfBandRecord;
@@ -263,13 +252,13 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
     var onConnection = async (event) => {
         {
             let payload = event.payload;
-            if (payload.connectionRecord.state === core_1.DidExchangeState.Completed) {
-                agent.events.off(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+            if (payload.connectionRecord.state === DidCommDidExchangeState.Completed) {
+                agent.events.off(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
                 def.resolve(true);
             }
         }
     };
-    agent.events.on(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+    agent.events.on(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
     let legacyConnectionDid = undefined;
     let connectionId = undefined;
     let oobRecordId = undefined;
@@ -282,7 +271,7 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
         // LO: retrieve the legacy DID. IAS controller needs that to issue against
         // This code adapted from https://github.com/bcgov/bc-wallet-mobile/blob/main/app/src/helpers/BCIDHelper.ts
         const legacyDidKey = '_internal/legacyDid'; // TODO:(from BC Wallet code) Waiting for AFJ export of this.
-        const didRepository = agent.dependencyManager.resolve(core_1.DidRepository);
+        const didRepository = agent.dependencyManager.resolve(DidRepository);
         const dids = await didRepository.getAll(agent.context);
         const didRecord = dids.filter((d) => d.did === connectionRecord?.did).pop();
         legacyConnectionDid = didRecord.metadata.get(legacyDidKey).unqualifiedDid;
@@ -294,7 +283,7 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // we no longer need to listen to the event in case of failure
-        agent.events.off(core_1.ConnectionEventTypes.ConnectionStateChanged, onConnection);
+        agent.events.off(DidCommConnectionEventTypes.ConnectionStateChanged, onConnection);
         throw 'Connection timeout!';
     }
     return { did: legacyConnectionDid, connectionId: connectionId, oobRecordId: oobRecordId };
@@ -309,26 +298,26 @@ let receiveCredential = async (agent) => {
     let onCredential = async (event) => {
         let payload = event.payload;
         switch (payload.credentialRecord.state) {
-            case core_1.CredentialState.OfferReceived:
+            case DidCommCredentialState.OfferReceived:
                 // custom logic here
-                await agent.credentials.acceptOffer({
+                await agent.didcomm.credentials.acceptOffer({
                     credentialRecordId: payload.credentialRecord.id,
                 });
                 break;
-            case core_1.CredentialState.CredentialReceived:
+            case DidCommCredentialState.CredentialReceived:
                 // For demo purposes we exit the program here.
-                agent.events.off(core_1.CredentialEventTypes.CredentialStateChanged, onCredential);
+                agent.events.off(DidCommCredentialEventTypes.DidCommCredentialStateChanged, onCredential);
                 def.resolve(true);
                 break;
         }
     };
-    agent.events.on(core_1.CredentialEventTypes.CredentialStateChanged, onCredential);
+    agent.events.on(DidCommCredentialEventTypes.DidCommCredentialStateChanged, onCredential);
     // Nothing for us to do
     // wait for credential
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // we no longer need to listen to the event in case of failure
-        agent.events.off(core_1.CredentialEventTypes.CredentialStateChanged, onCredential);
+        agent.events.off(DidCommCredentialEventTypes.DidCommCredentialStateChanged, onCredential);
         throw 'Credential timeout!';
     }
 };
@@ -342,28 +331,28 @@ let presentationExchange = async (agent) => {
     let onRequest = async (event) => {
         let payload = event.payload;
         switch (payload.proofRecord.state) {
-            case core_1.ProofState.RequestReceived:
-                const requestedCredentials = await agent.proofs.selectCredentialsForRequest({
+            case DidCommProofState.RequestReceived:
+                const requestedCredentials = await agent.didcomm.proofs.selectCredentialsForRequest({
                     proofRecordId: payload.proofRecord.id,
                     // config: {
                     //   filterByPresentationPreview: true,
                     // },
                 });
-                await agent.proofs.acceptRequest({
+                await agent.didcomm.proofs.acceptRequest({
                     proofRecordId: payload.proofRecord.id,
                     proofFormats: requestedCredentials.proofFormats,
                 });
-                agent.events.off(core_1.ProofEventTypes.ProofStateChanged, onRequest);
+                agent.events.off(DidCommProofEventTypes.DidCommProofStateChanged, onRequest);
                 def.resolve(true);
                 break;
         }
     };
-    agent.events.on(core_1.ProofEventTypes.ProofStateChanged, onRequest);
+    agent.events.on(DidCommProofEventTypes.DidCommProofStateChanged, onRequest);
     // Wait for presentation
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // No longer need to listen to the event in case of failure
-        agent.events.off(core_1.ProofEventTypes.ProofStateChanged, onRequest);
+        agent.events.off(DidCommProofEventTypes.DidCommProofStateChanged, onRequest);
         throw 'Presentation timeout!';
     }
 };
@@ -377,16 +366,16 @@ let receiveMessage = async (agent) => {
     let onMessage = async (event) => {
         let payload = event.payload;
         //        console.error(payload)
-        agent.events.off(core_1.BasicMessageEventTypes.BasicMessageStateChanged, onMessage);
+        agent.events.off(DidCommBasicMessageEventTypes.BasicMessageStateChanged, onMessage);
         def.resolve(true);
     };
-    agent.events.on(core_1.BasicMessageEventTypes.BasicMessageStateChanged, onMessage);
+    agent.events.on(DidCommBasicMessageEventTypes.BasicMessageStateChanged, onMessage);
     // Nothing for us to do
     // wait for credential
     let value = await Promise.race([TimeDelay, def.promise]);
     if (!value) {
         // we no longer need to listen to the event in case of failure
-        agent.events.off(core_1.BasicMessageEventTypes.BasicMessageStateChanged, onMessage);
+        agent.events.off(DidCommBasicMessageEventTypes.BasicMessageStateChanged, onMessage);
         throw 'Message timeout!';
     }
 };

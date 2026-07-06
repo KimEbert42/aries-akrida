@@ -15,15 +15,15 @@ class CredentialProposal(BaseModel):
 
 class IssueCredential(BaseModel):
     auto_remove: bool = Field(True)
-    comment: str = Field()
+    comment: Optional[str] = Field(default=None)
     connection_id: str = Field()
     cred_def_id: str = Field()
     credential_proposal: CredentialProposal = Field()
-    issuer_did: str = Field()
-    schema_id: str = Field()
-    schema_issuer_did: str = Field()
-    schema_name: str = Field()
-    schema_version: str = Field()
+    issuer_did: Optional[str] = Field(default=None)
+    schema_id: Optional[str] = Field(default=None)
+    schema_issuer_did: Optional[str] = Field(default=None)
+    schema_name: Optional[str] = Field(default=None)
+    schema_version: Optional[str] = Field(default=None)
     trace: bool = Field(True)
 
 

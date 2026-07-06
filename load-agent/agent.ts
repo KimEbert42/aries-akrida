@@ -1,11 +1,11 @@
 import {
-  AnonCredsCredentialFormatService,
+  AnonCredsDidCommCredentialFormatService,
   AnonCredsModule,
-  AnonCredsProofFormatService,
-  LegacyIndyCredentialFormatService,
-  LegacyIndyProofFormatService,
-  V1CredentialProtocol,
-  V1ProofProtocol,
+  AnonCredsDidCommProofFormatService,
+  LegacyIndyDidCommCredentialFormatService,
+  LegacyIndyDidCommProofFormatService,
+  DidCommCredentialV1Protocol,
+  DidCommProofV1Protocol,
 } from '@credo-ts/anoncreds'
 
 import {
@@ -19,43 +19,42 @@ import { AskarModule } from '@credo-ts/askar'
 
 import {
   DidsModule,
-  ProofsModule,
-  V2ProofProtocol,
-  CredentialsModule,
-  V2CredentialProtocol,
-  ConnectionsModule,
   KeyDidRegistrar,
   KeyDidResolver,
   WebDidResolver,
-  HttpOutboundTransport,
-  WsOutboundTransport,
   Agent,
-  MediationRecipientModule,
-  MediatorPickupStrategy,
-  CredentialEventTypes,
-  ProofEventTypes,
-  DidCommMimeType,
-  TransportEventTypes,
-  TrustPingEventTypes,
-  DidExchangeState,
-  ConnectionEventTypes,
   DidRepository,
-  CredentialState,
-  ProofState,
-  BasicMessageEventTypes,
   ConsoleLogger,
   LogLevel,
 } from '@credo-ts/core'
+
+import {
+  DidCommModule,
+  DidCommMediatorPickupStrategy,
+  DidCommCredentialEventTypes,
+  DidCommProofEventTypes,
+  DidCommMimeType,
+  DidCommTransportEventTypes,
+  DidCommTrustPingEventTypes,
+  DidCommDidExchangeState,
+  DidCommConnectionEventTypes,
+  DidCommBasicMessageEventTypes,
+  DidCommCredentialState,
+  DidCommProofState,
+  DidCommHttpOutboundTransport,
+  DidCommWsOutboundTransport,
+  DidCommInboundTransport,
+} from '@credo-ts/didcomm'
+
 import { anoncreds } from '@hyperledger/anoncreds-nodejs'
-import { ariesAskar } from '@hyperledger/aries-askar-nodejs'
+import { askarNodeJS } from '@openwallet-foundation/askar-nodejs'
 import { indyVdr } from '@hyperledger/indy-vdr-nodejs'
-import { agentDependencies, HttpInboundTransport } from '@credo-ts/node'
+import { agentDependencies } from '@credo-ts/node'
 
-var config = require('./config.js')
-
-var deferred = require('deferred')
-var process = require('process')
-var readline = require('readline')
+import config from './config.cjs'
+import deferred from 'deferred'
+import process from 'process'
+import readline from 'readline'
 
 /*
   Remap all logging to stderr
@@ -65,13 +64,13 @@ class ConsoleError extends ConsoleLogger {
       super(...args);
       // Map our log levels to console levels
       (this as any).consoleLogMap = {
-          [LogLevel.test]: 'error',
-          [LogLevel.trace]: 'error',
-          [LogLevel.debug]: 'error',
-          [LogLevel.info]: 'error',
-          [LogLevel.warn]: 'error',
-          [LogLevel.error]: 'error',
-          [LogLevel.fatal]: 'error',
+          [LogLevel.Test]: 'error',
+          [LogLevel.Trace]: 'error',
+          [LogLevel.Debug]: 'error',
+          [LogLevel.Info]: 'error',
+          [LogLevel.Warn]: 'error',
+          [LogLevel.Error]: 'error',
+          [LogLevel.Fatal]: 'error',
       };
   }
 }
@@ -98,7 +97,7 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
   let mediation_url = config.mediation_url
   let endpoints = ['http://' + config.agent_ip + ':' + port]
 
-  const logLevel = parseInt(process.env.AGENT_LOGGING_LEVEL) || LogLevel.off
+  const logLevel = parseInt(process.env.AGENT_LOGGING_LEVEL) || LogLevel.Off
 
   process.stderr.write('Agent Log Level: ' + parseInt(process.env.AGENT_LOGGING_LEVEL) + '\n')
 
@@ -122,54 +121,55 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
     }
   }
 
-  const legacyIndyCredentialFormat = new LegacyIndyCredentialFormatService()
-  const legacyIndyProofFormat = new LegacyIndyProofFormatService()
-  const anonCredsCredentialFormatService = new AnonCredsCredentialFormatService()
-  const anonCredsProofFormatService = new AnonCredsProofFormatService()
+  const legacyIndyCredentialFormat = new LegacyIndyDidCommCredentialFormatService()
+  const legacyIndyProofFormat = new LegacyIndyDidCommProofFormatService()
+  const anonCredsCredentialFormatService = new AnonCredsDidCommCredentialFormatService()
+  const anonCredsProofFormatService = new AnonCredsDidCommProofFormatService()
 
 
   
   let modules = {
     indyVdr: new IndyVdrModule({
       indyVdr,
-      networks: [config.ledger]
+      networks: [{
+        genesisTransactions: config.ledger.genesisTransactions,
+        indyNamespace: config.ledger.indyNamespace,
+        isProduction: config.ledger.isProduction,
+        connectOnStartup: config.ledger.connectOnStartup,
+      }],
     }),
     askar: new AskarModule({
-      ariesAskar,
+      askar: askarNodeJS,
+      store: {
+        id: agentConfig.walletConfig.id,
+        key: agentConfig.walletConfig.key,
+        database: {
+          type: 'sqlite',
+          config: { inMemory: true },
+        },
+      },
     }),
     // mediator: new MediatorModule({
     //   autoAcceptMediationRequests: true,
     // }),
-    mediationRecipient: new MediationRecipientModule({
-      mediatorInvitationUrl: mediation_url,
-      mediatorPickupStrategy: MediatorPickupStrategy.Implicit,      
-    }),
     anoncreds: new AnonCredsModule({
       registries: [new IndyVdrAnonCredsRegistry()],
       anoncreds
     }),
-    connections: new ConnectionsModule({
-      autoAcceptConnections: true,
-    }),
-    proofs: new ProofsModule({
-      proofProtocols: [
-        new V1ProofProtocol({
-          indyProofFormat: legacyIndyProofFormat,
-        }),
-        new V2ProofProtocol({
-          proofFormats: [legacyIndyProofFormat, anonCredsProofFormatService],
-        }),
-      ],
-    }),
-    credentials: new CredentialsModule({
-      credentialProtocols: [
-        new V1CredentialProtocol({
-          indyCredentialFormat: legacyIndyCredentialFormat,
-        }),
-        new V2CredentialProtocol({
-          credentialFormats: [legacyIndyCredentialFormat,anonCredsCredentialFormatService],
-        }),
-      ],
+    didcomm: new DidCommModule({
+      connections: {
+        autoAcceptConnections: true,
+      },
+      proofs: true,
+      credentials: true,
+      mediator: false,
+      mediationRecipient: {},
+      transports: {
+        outbound: [
+          new DidCommHttpOutboundTransport(),
+          new DidCommWsOutboundTransport(),
+        ],
+      },
     }),
     dids: new DidsModule({
       registrars: [new IndyVdrIndyDidRegistrar(), new KeyDidRegistrar()],
@@ -181,7 +181,6 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
   if (withMediation) {
     delete agentConfig['endpoints']
   } else {
-    delete modules['mediationRecipient']
   }
 
   // A new instance of an agent is created here
@@ -191,19 +190,13 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
     modules: modules
   })
   
-    const wsTransport = new WsOutboundTransport()
-    const httpTransport = new HttpOutboundTransport()
   
   
   // Register a simple `WebSocket` outbound transport
-    agent.registerOutboundTransport(wsTransport)
-
   // Register a simple `Http` outbound transport
-    agent.registerOutboundTransport(httpTransport)
-
   if (withMediation) {
     // wait for mediation to be configured
-    let timeout = config.verified_timeout_seconds * 1000
+    let timeout = Number(config.verified_timeout_seconds) * 1000
 
     const TimeDelay = new Promise((resolve, reject) => {
       setTimeout(resolve, timeout, false)
@@ -214,13 +207,13 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
     var onConnectedMediation = async (event) => {
       let mediatorConnection = null
       let interval = 100; 
-      for (let i = 0; i < (timeout - interval); i++)
+      for (let i = 0; i < Number(timeout - interval); i++)
       {
         // OutboundWebSocketOpenedEvent occurs before mediation is finalized, so we want to check
         // for the default mediation connection until it is not null or we hit a timeout
         // we sleep a small amount between requests just to be kind to our CPU. 
         await new Promise(r => setTimeout(r, interval))
-        mediatorConnection = await agent.mediationRecipient.findDefaultMediatorConnection()
+        mediatorConnection = await agent.didcomm.mediationRecipient.findDefaultMediatorConnection()
         if (mediatorConnection != null) {
           break;
         }
@@ -229,25 +222,27 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
         def.resolve(true)
         // we no longer need to listen to the event
         agent.events.off(
-          TransportEventTypes.OutboundWebSocketOpenedEvent,
+          DidCommTransportEventTypes.DidCommOutboundWebSocketOpenedEvent,
           onConnectedMediation
         )
       }
     }
 
     agent.events.on(
-      TransportEventTypes.OutboundWebSocketOpenedEvent,
+      DidCommTransportEventTypes.DidCommOutboundWebSocketOpenedEvent,
       onConnectedMediation
     )
 
     // Initialize the agent
     await agent.initialize()
 
+    // Mediation URL can be set via config
+
     if (config.pickup_strategy === 'pickupv2-live') {
       process.stderr.write('Pickup strategy: pickupv2-live')
-      await agent.mediationRecipient.initiateMessagePickup(
+      await agent.didcomm.mediationRecipient.initiateMessagePickup(
         undefined,
-        MediatorPickupStrategy.PickUpV2LiveMode
+        DidCommMediatorPickupStrategy.PickUpV2LiveMode
       )
     }
 
@@ -257,14 +252,13 @@ const initializeAgent = async (withMediation, port, agentConfig = null) => {
     if (!value) {
       // we no longer need to listen to the event in case of failure
       agent.events.off(
-        TransportEventTypes.OutboundWebSocketOpenedEvent,
+        DidCommTransportEventTypes.DidCommOutboundWebSocketOpenedEvent,
         onConnectedMediation
       )
       throw 'Mediator timeout!'
     }
   } else {
-    const httpInbound = new HttpInboundTransport({ port:port })
-    agent.registerInboundTransport(httpInbound);
+
     await agent.initialize()
   }
 
@@ -281,7 +275,7 @@ const pingMediator = async (agent) => {
   // Find mediator
 
   // wait for the ping
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
 
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
@@ -291,11 +285,11 @@ const pingMediator = async (agent) => {
 
   var onPingResponse = async (event) => {
     const mediatorConnection =
-      await agent.mediationRecipient.findDefaultMediatorConnection()
+      await agent.didcomm.mediationRecipient.findDefaultMediatorConnection()
     if (event.payload.connectionRecord.id === mediatorConnection?.id) {
       // we no longer need to listen to the event
       agent.events.off(
-        TrustPingEventTypes.TrustPingResponseReceivedEvent,
+        DidCommTrustPingEventTypes.DidCommTrustPingResponseReceivedEvent,
         onPingResponse
       )
 
@@ -304,16 +298,16 @@ const pingMediator = async (agent) => {
   }
 
   agent.events.on(
-    TrustPingEventTypes.TrustPingResponseReceivedEvent,
+    DidCommTrustPingEventTypes.DidCommTrustPingResponseReceivedEvent,
     onPingResponse
   )
 
   let mediatorConnection =
-    await agent.mediationRecipient.findDefaultMediatorConnection()
+    await agent.didcomm.mediationRecipient.findDefaultMediatorConnection()
 
   if (mediatorConnection) {
     //await agent.connections.acceptResponse(mediatorConnection.id)
-    await agent.connections.sendPing(mediatorConnection.id, {})
+    await agent.didcomm.connections.sendPing(mediatorConnection.id, {})
   }
 
   // wait for ping response
@@ -322,7 +316,7 @@ const pingMediator = async (agent) => {
   if (!value) {
     // we no longer need to listen to the event in case of failure
     agent.events.off(
-      TrustPingEventTypes.TrustPingResponseReceivedEvent,
+      DidCommTrustPingEventTypes.DidCommTrustPingResponseReceivedEvent,
       onPingResponse
     )
     throw 'Mediator timeout!'
@@ -335,7 +329,7 @@ let deleteOobRecordById = async (agent, id) => {
 
 let receiveInvitation = async (agent, invitationUrl) => {
   // wait for the connection
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
   })
@@ -346,7 +340,7 @@ let receiveInvitation = async (agent, invitationUrl) => {
     {
       let payload = event.payload
       if (
-        payload.connectionRecord.state === DidExchangeState.Completed
+        payload.connectionRecord.state === DidCommDidExchangeState.Completed
       ) {
         // the connection is now ready for usage in other protocols!
         // console.log(`Connection for out-of-band id ${payload.connectionRecord.outOfBandId} completed`)
@@ -355,7 +349,7 @@ let receiveInvitation = async (agent, invitationUrl) => {
         // anything is possible
 
         agent.events.off(
-          ConnectionEventTypes.ConnectionStateChanged,
+          DidCommConnectionEventTypes.DidCommConnectionStateChanged,
           onConnection
         )
 
@@ -365,7 +359,7 @@ let receiveInvitation = async (agent, invitationUrl) => {
   }
 
   agent.events.on(
-    ConnectionEventTypes.ConnectionStateChanged,
+    DidCommConnectionEventTypes.DidCommConnectionStateChanged,
     onConnection
   )
 
@@ -379,7 +373,7 @@ let receiveInvitation = async (agent, invitationUrl) => {
   if (!value) {
     // we no longer need to listen to the event in case of failure
     agent.events.off(
-      ConnectionEventTypes.ConnectionStateChanged,
+      DidCommConnectionEventTypes.DidCommConnectionStateChanged,
       onConnection
     )
     throw 'Connection timeout!'
@@ -389,7 +383,7 @@ let receiveInvitation = async (agent, invitationUrl) => {
 }
 
 let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
   })
@@ -400,10 +394,10 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
     {
       let payload = event.payload
       if (
-        payload.connectionRecord.state === DidExchangeState.Completed
+        payload.connectionRecord.state === DidCommDidExchangeState.Completed
       ) {
         agent.events.off(
-          ConnectionEventTypes.ConnectionStateChanged,
+          DidCommConnectionEventTypes.DidCommConnectionStateChanged,
           onConnection
         )
 
@@ -413,7 +407,7 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
   }
 
   agent.events.on(
-    ConnectionEventTypes.ConnectionStateChanged,
+    DidCommConnectionEventTypes.DidCommConnectionStateChanged,
     onConnection
   )
 
@@ -446,7 +440,7 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
   if (!value) {
     // we no longer need to listen to the event in case of failure
     agent.events.off(
-      ConnectionEventTypes.ConnectionStateChanged,
+      DidCommConnectionEventTypes.DidCommConnectionStateChanged,
       onConnection
     )
     throw 'Connection timeout!'
@@ -457,7 +451,7 @@ let receiveInvitationConnectionDid = async (agent, invitationUrl) => {
 
 let receiveCredential = async (agent) => {
   // wait for the ping
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
 
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
@@ -469,17 +463,17 @@ let receiveCredential = async (agent) => {
     let payload = event.payload
 
     switch (payload.credentialRecord.state) {
-      case CredentialState.OfferReceived:
+      case DidCommCredentialState.OfferReceived:
         // custom logic here
-        await agent.credentials.acceptOffer({
+        await agent.didcomm.credentials.acceptOffer({
           credentialRecordId: payload.credentialRecord.id,
         })
         break
-      case CredentialState.CredentialReceived:
+      case DidCommCredentialState.CredentialReceived:
         // For demo purposes we exit the program here.
 
         agent.events.off(
-          CredentialEventTypes.CredentialStateChanged,
+          DidCommCredentialEventTypes.DidCommCredentialStateChanged,
           onCredential
         )
 
@@ -489,7 +483,7 @@ let receiveCredential = async (agent) => {
   }
 
   agent.events.on(
-    CredentialEventTypes.CredentialStateChanged,
+    DidCommCredentialEventTypes.DidCommCredentialStateChanged,
     onCredential
   )
 
@@ -501,7 +495,7 @@ let receiveCredential = async (agent) => {
   if (!value) {
     // we no longer need to listen to the event in case of failure
     agent.events.off(
-      CredentialEventTypes.CredentialStateChanged,
+      DidCommCredentialEventTypes.DidCommCredentialStateChanged,
       onCredential
     )
     throw 'Credential timeout!'
@@ -510,7 +504,7 @@ let receiveCredential = async (agent) => {
 
 let presentationExchange = async (agent) => {
   // wait for the ping
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
 
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
@@ -522,39 +516,39 @@ let presentationExchange = async (agent) => {
     let payload = event.payload
 
     switch (payload.proofRecord.state) {
-      case ProofState.RequestReceived:
+      case DidCommProofState.RequestReceived:
         const requestedCredentials =
-          await agent.proofs.selectCredentialsForRequest({
+          await agent.didcomm.proofs.selectCredentialsForRequest({
             proofRecordId: payload.proofRecord.id,
             // config: {
             //   filterByPresentationPreview: true,
             // },
           })
-        await agent.proofs.acceptRequest({
+        await agent.didcomm.proofs.acceptRequest({
           proofRecordId: payload.proofRecord.id,
           proofFormats: requestedCredentials.proofFormats,
         })
-        agent.events.off(ProofEventTypes.ProofStateChanged, onRequest)
+        agent.events.off(DidCommProofEventTypes.ProofStateChanged, onRequest)
         def.resolve(true)
         break
     }
   }
 
-  agent.events.on(ProofEventTypes.ProofStateChanged, onRequest)
+  agent.events.on(DidCommProofEventTypes.ProofStateChanged, onRequest)
 
   // Wait for presentation
   let value = await Promise.race([TimeDelay, def.promise])
 
   if (!value) {
     // No longer need to listen to the event in case of failure
-    agent.events.off(ProofEventTypes.ProofStateChanged, onRequest)
+    agent.events.off(DidCommProofEventTypes.ProofStateChanged, onRequest)
     throw 'Presentation timeout!'
   }
 }
 
 let receiveMessage = async (agent) => {
   // wait for the ping
-  let timeout = config.verified_timeout_seconds * 1000
+  let timeout = Number(config.verified_timeout_seconds) * 1000
 
   const TimeDelay = new Promise((resolve, reject) => {
     setTimeout(resolve, timeout, false)
@@ -568,7 +562,7 @@ let receiveMessage = async (agent) => {
     //        console.error(payload)
 
     agent.events.off(
-      BasicMessageEventTypes.BasicMessageStateChanged,
+      DidCommBasicMessageEventTypes.DidCommBasicMessageStateChanged,
       onMessage
     )
 
@@ -576,7 +570,7 @@ let receiveMessage = async (agent) => {
   }
 
   agent.events.on(
-    BasicMessageEventTypes.BasicMessageStateChanged,
+    DidCommBasicMessageEventTypes.DidCommBasicMessageStateChanged,
     onMessage
   )
 
@@ -588,7 +582,7 @@ let receiveMessage = async (agent) => {
   if (!value) {
     // we no longer need to listen to the event in case of failure
     agent.events.off(
-      BasicMessageEventTypes.BasicMessageStateChanged,
+      DidCommBasicMessageEventTypes.DidCommBasicMessageStateChanged,
       onMessage
     )
     throw 'Message timeout!'

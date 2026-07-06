@@ -15,7 +15,10 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
         self.proof_request = ProofRequest(
             name="PerfScore",
             requested_attributes={
-                item["name"]: {"name": item["name"]} for item in Settings.CRED_ATTR
+                item["name"]: {
+                    "name": item["name"],
+                    "restrictions": [{"cred_def_id": self.cred_def_id}],
+                } for item in Settings.CRED_ATTR
             },
             requested_predicates={},
             version="1.0",

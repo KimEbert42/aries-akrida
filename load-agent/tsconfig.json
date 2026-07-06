@@ -24,6 +24,6 @@
     /* Runtime only */
     "forceConsistentCasingInFileNames": false
   },
-  "include": ["agent.ts", "config.js", "src/**/*"],
+  "include": ["agent.ts", "config.cjs", "src/**/*"],
   "exclude": ["node_modules", "dist", "test"]
 }
