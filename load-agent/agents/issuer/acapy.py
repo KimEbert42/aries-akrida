@@ -9,17 +9,19 @@ from ..base_acapy import BaseAcapyAgent
 
 class AcapyIssuer(BaseIssuer, BaseAcapyAgent):
     def issue_credential(self, connection_id):
-        schema_parts = self.schema_id.split(":")
+        schema_issuer_did, schema_rest = self.schema_id.split(":2:", 1)
+        schema_name, schema_version = schema_rest.split(":", 1)
+        issuer_did = self.cred_def_id.split(":3:CL:")[0]
 
         payload = IssueCredentialV1(
             connection_id=connection_id,
             comment="Performance Issuance",
             cred_def_id=self.cred_def_id,
-            issuer_did=self.cred_def_id.split(":")[0],
+            issuer_did=issuer_did,
             schema_id=self.schema_id,
-            schema_issuer_did=schema_parts[0],
-            schema_name=schema_parts[2],
-            schema_version=schema_parts[3],
+            schema_issuer_did=schema_issuer_did,
+            schema_name=schema_name,
+            schema_version=schema_version,
             credential_proposal=CredentialProposalV1(attributes=self.cred_attributes),
         ).model_dump()
 

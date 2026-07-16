@@ -32,7 +32,7 @@ if (process.env.LEDGER == "bcovrin") {
     genesisTransactions: ReadGenesisTransactions("./networks/indicio-test.txn"),
     id: "IndicioTest",
     indyNamespace: 'indicio:test',
-    isProduction: false,
+    isProduction: true,
     connectOnStartup: true,
   };
 }

@@ -20,12 +20,23 @@ from ..base_acapy import BaseAcapyAgent
 class AcapyIssuer(BaseIssuer, BaseAcapyAgent):
     def __init__(self):
         super().__init__()
+        schema_issuer_id, schema_rest = self.schema_id.split(":2:", 1)
+        schema_name, schema_version = schema_rest.split(":", 1)
+        issuer_id = self.cred_def_id.split(":3:CL:")[0]
+        filter_kwargs = dict(
+            cred_def_id=self.cred_def_id,
+            schema_id=self.schema_id,
+            schema_issuer_id=schema_issuer_id,
+            schema_name=schema_name,
+            schema_version=schema_version,
+            issuer_id=issuer_id,
+        )
         if Settings.IS_ANONCREDS:
-            self.filter = AnonCredsFilter(anoncreds=Filter(cred_def_id=self.cred_def_id))
+            self.filter = AnonCredsFilter(anoncreds=Filter(**filter_kwargs))
             self.revoke_endpoint = "/anoncreds/revocation/revoke"
         else:
             self.revoke_endpoint = "/revocation/revoke"
-            self.filter = IndyFilter(indy=Filter(cred_def_id=self.cred_def_id))
+            self.filter = IndyFilter(indy=Filter(**filter_kwargs))
 
     def issue_credential(self, connection_id):
                 

@@ -13,6 +13,11 @@ class CredentialPreview(BaseModel):
 
 class Filter(BaseModel):
     cred_def_id: str = Field()
+    schema_id: str = Field(default=None)
+    schema_issuer_id: str = Field(default=None)
+    schema_name: str = Field(default=None)
+    schema_version: str = Field(default=None)
+    issuer_id: str = Field(default=None)
 
 class AnonCredsFilter(BaseModel):
     anoncreds: Filter = Field()

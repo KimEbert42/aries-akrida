@@ -36,11 +36,18 @@ RUN pdm sync --no-self
 
 # JS agent dependencies (cached separately)
 WORKDIR ${LOADDIR}
-COPY ./load-agent/package.json ./load-agent/yarn.lock ./
+COPY ./load-agent/package.json ./load-agent/yarn.lock ./load-agent/.yarnrc.yml ./
 RUN yarn install
 
-# App code
-ADD ./load-agent ${LOADDIR}/
+# App code (only source, not yarn.lock/package.json which are already installed)
+COPY ./load-agent/agent.ts ./load-agent/tsconfig.json ./load-agent/config.js \
+     ./load-agent/constants.py ./load-agent/locustClient.py \
+     ./load-agent/portmanager.py ./load-agent/settings.py ./
+COPY ./load-agent/agents ./agents/
+COPY ./load-agent/locust-files ./locust-files/
+COPY ./load-agent/models ./models/
+COPY ./load-agent/networks ./networks/
+COPY ./load-agent/tests ./tests/
 
 # Conditionally copy vdr proxy code
 COPY ./load-vdr-proxy /tmp/load-vdr-proxy
