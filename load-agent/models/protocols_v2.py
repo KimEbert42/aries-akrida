@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,7 @@ class CredentialPreview(BaseModel):
 
 class Filter(BaseModel):
     cred_def_id: str = Field()
+    schema_id: Optional[str] = Field(None)
 
 class AnonCredsFilter(BaseModel):
     anoncreds: Filter = Field()

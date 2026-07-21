@@ -19,7 +19,7 @@ RUN apt-get update -y && apt-get install -y \
     libsodium-dev libzmq3-dev python3-pip tmux htop
 
 RUN corepack enable
-RUN corepack prepare yarn@stable --activate
+RUN corepack prepare yarn@4.10.3 --activate
 
 # Rust / Indy setup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -36,7 +36,7 @@ RUN pdm sync --no-self
 
 # JS agent dependencies (cached separately)
 WORKDIR ${LOADDIR}
-COPY ./load-agent/package.json ./load-agent/yarn.lock ./
+COPY ./load-agent/package.json ./load-agent/yarn.lock ./load-agent/.yarnrc.yml ./
 RUN yarn install
 
 # App code
