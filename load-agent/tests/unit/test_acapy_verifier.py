@@ -24,6 +24,7 @@ class TestAcapyVerifierV1:
         from settings import Settings
 
         monkeypatch.setattr(Settings, "VERIFIED_TIMEOUT_SECONDS", 2)
+        monkeypatch.setattr(Settings, "CRED_ATTR", [{"name": "score", "value": "100"}])
 
         from agents.verifier.acapy import AcapyVerifier
 

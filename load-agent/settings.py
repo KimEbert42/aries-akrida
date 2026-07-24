@@ -14,7 +14,7 @@ class Settings:
     # Load test data
     SCHEMA_ID: str = os.getenv("SCHEMA", "")
     CRED_DEF_ID: str = os.getenv("CRED_DEF", "")
-    CRED_ATTR: dict = json.loads(os.getenv("CRED_ATTR", "[{}]"))
+    CRED_ATTR: dict = json.loads(os.getenv("CRED_ATTR", '[{"name":"score","value":"test"}]'))
 
     # Load test parameters
     SHUTDOWN_TIMEOUT_SECONDS: int = 10
