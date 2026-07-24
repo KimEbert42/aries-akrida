@@ -4,8 +4,6 @@ import time
 from locust import events
 from settings import Settings
 
-from agents.holder.credo import CredoHolder
-
 
 def stopwatch(func):
     def wrapper(*args, **kwargs):
@@ -32,8 +30,8 @@ def stopwatch(func):
                 request_type="TYPE",
                 name=f"{file_name}_{task_name}",
                 response_time=total,
-                response_length=0,     # size in bytes
-                exception=None
+                response_length=0,  # size in bytes
+                exception=None,
             )
         return result
 
@@ -43,7 +41,7 @@ def stopwatch(func):
 class CustomClient:
     def __init__(self, host):
         self.host = host
-        
+
         self.issuerType = Settings.ISSUER_TYPE
         self.verifierType = Settings.VERIFIER_TYPE
         self.holderType = Settings.HOLDER_TYPE
@@ -57,10 +55,10 @@ class CustomClient:
     def _load_issuer(self):
         """Load issuer agent based on configuration"""
         issuer_classes = {
-            'acapy': lambda: self._import_and_create('agents.issuer.acapy', 'AcapyIssuer'),
-            'acapy_v2': lambda: self._import_and_create('agents.issuer.acapy_v2', 'AcapyIssuer'),
+            "acapy": lambda: self._import_and_create("agents.issuer.acapy", "AcapyIssuer"),
+            "acapy_v2": lambda: self._import_and_create("agents.issuer.acapy_v2", "AcapyIssuer"),
         }
-        
+
         loader = issuer_classes.get(self.issuerType.lower())
         if loader:
             self.issuer = loader()
@@ -70,10 +68,10 @@ class CustomClient:
     def _load_verifier(self):
         """Load verifier agent based on configuration"""
         verifier_classes = {
-            'acapy': lambda: self._import_and_create('agents.verifier.acapy', 'AcapyVerifier'),
-            'acapy_v2': lambda: self._import_and_create('agents.verifier.acapy_v2', 'AcapyVerifier'),
+            "acapy": lambda: self._import_and_create("agents.verifier.acapy", "AcapyVerifier"),
+            "acapy_v2": lambda: self._import_and_create("agents.verifier.acapy_v2", "AcapyVerifier"),
         }
-        
+
         loader = verifier_classes.get(self.verifierType.lower())
         if loader:
             self.verifier = loader()
@@ -83,9 +81,9 @@ class CustomClient:
     def _load_holder(self):
         """Load holder agent based on configuration"""
         holder_classes = {
-            'credo': lambda: self._import_and_create('agents.holder.credo', 'CredoHolder'),
+            "credo": lambda: self._import_and_create("agents.holder.credo", "CredoHolder"),
         }
-        
+
         loader = holder_classes.get(self.holderType.lower())
         if loader:
             self.holder = loader()
@@ -97,12 +95,12 @@ class CustomClient:
         module = __import__(module_path, fromlist=[class_name])
         cls = getattr(module, class_name)
         return cls()
-            
+
     _locust_environment = None
 
     @stopwatch
-    def startup(self, withMediation=True, reinstantiate=False):
-        self.holder.start(withMediation=withMediation, reinstantiate=reinstantiate)
+    def startup(self, with_mediation=True, reinstantiate=False):
+        self.holder.start(with_mediation=with_mediation, reinstantiate=reinstantiate)
 
     def shutdown(self):
         self.holder.shutdown()
@@ -120,7 +118,7 @@ class CustomClient:
     @stopwatch
     def issuer_getinvite(self):
         return self.issuer.get_invite()
-        
+
     @stopwatch
     def issuer_getliveness(self):
         return self.issuer.is_up()
@@ -130,8 +128,8 @@ class CustomClient:
         self.holder.delete_oob(id)
 
     @stopwatch
-    def accept_invite(self, invite, useConnectionDid=False):
-        return self.holder.accept_invite(invite, useConnectionDid)
+    def accept_invite(self, invite, use_connection_did=False):
+        return self.holder.accept_invite(invite, use_connection_did)
 
     @stopwatch
     def receive_credential(self, connection_id):
@@ -150,19 +148,16 @@ class CustomClient:
 
         pres_ex_id = self.verifier.request_verification(connection_id)
         self.holder.presentation_exchange()
-        
+
         self.verifier.verify_verification(pres_ex_id)
 
     @stopwatch
     def verifier_connectionless_request(self):
         return self.verifier.create_connectionless_request()
-    
+
     @stopwatch
     def revoke_credential(self, credential_exchange):
-        self.issuer.revoke_credential(
-            credential_exchange['connection_id'],
-            credential_exchange['cred_ex_id']
-        )
+        self.issuer.revoke_credential(credential_exchange["connection_id"], credential_exchange["cred_ex_id"])
 
     @stopwatch
     def msg_client(self, connection_id):

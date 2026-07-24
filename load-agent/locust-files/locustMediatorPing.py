@@ -9,7 +9,7 @@ WITH_MEDIATION = os.getenv("WITH_MEDIATION", "false").lower() in ("true", "1", "
 
 class UserBehaviour(TaskSet):
     def on_start(self):
-        self.client.startup(withMediation=WITH_MEDIATION)
+        self.client.startup(with_mediation=WITH_MEDIATION)
 
     def on_stop(self):
         self.client.shutdown()

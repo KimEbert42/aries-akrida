@@ -1,7 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
 
-from locustMediatorPresentProof import UserBehaviour, Issue
+import pytest
+from locustMediatorPresentProof import Issue, UserBehaviour
 
 
 class TestUserBehaviour:
@@ -33,9 +33,7 @@ class TestUserBehaviour:
     def test_accept_verifier_invite_calls_accept_invite(self):
         self.behaviour.accept_verifier_invite()
         self.mock_client.ensure_is_running.assert_called_once()
-        self.mock_client.accept_invite.assert_called_once_with(
-            "http://example.com/invite"
-        )
+        self.mock_client.accept_invite.assert_called_once_with("http://example.com/invite")
 
     def test_presentation_exchange_calls_client(self):
         self.behaviour.presentation_exchange()

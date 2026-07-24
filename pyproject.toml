@@ -33,6 +33,7 @@ lint.select = ["E", "F", "W", "I", "N", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["N"]
+"load-agent/locust-files/*" = ["N999"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

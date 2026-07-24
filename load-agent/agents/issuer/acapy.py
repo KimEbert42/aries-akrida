@@ -3,8 +3,8 @@ import time
 import requests
 from models import AnonCredsRevocation, CredentialProposalV1, IssueCredentialV1
 
-from .base import BaseIssuer
 from ..base_acapy import BaseAcapyAgent
+from .base import BaseIssuer
 
 
 class AcapyIssuer(BaseIssuer, BaseAcapyAgent):

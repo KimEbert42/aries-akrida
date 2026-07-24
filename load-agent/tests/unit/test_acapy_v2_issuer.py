@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +11,7 @@ class TestAcapyV2IssuerAPICalls:
     @pytest.fixture(autouse=True)
     def setup_issuer(self):
         from agents.issuer.acapy_v2 import AcapyIssuer
-        from models import IndyFilter, Filter
+        from models import Filter, IndyFilter
 
         self.issuer = AcapyIssuer()
         self.issuer.agent_url = "http://localhost:8150"
@@ -95,9 +95,7 @@ class TestAcapyV2IssuerAnonCreds:
         self.issuer.schema_id = "did:indy:test:123456789abcdef:2:TestSchema:1.0"
         self.issuer.cred_def_id = "did:indy:test:123456789abcdef:3:CL:1234:default"
         self.issuer.cred_attributes = [{"name": "attr1", "value": "test"}]
-        self.issuer.filter = AnonCredsFilter(
-            anoncreds=Filter(cred_def_id=self.issuer.cred_def_id)
-        )
+        self.issuer.filter = AnonCredsFilter(anoncreds=Filter(cred_def_id=self.issuer.cred_def_id))
         self.issuer.revoke_endpoint = "/anoncreds/revocation/revoke"
 
     def test_issuer_uses_anoncreds_filter(self):
@@ -158,8 +156,10 @@ class TestAcapyV2IssuerBaseMethods:
             assert self.issuer.is_up() is False
 
     def test_get_invite_returns_connection_id(self):
-        with patch("agents.issuer.acapy_v2.requests.post") as mock_post, \
-             patch("agents.issuer.acapy_v2.requests.get") as mock_get:
+        with (
+            patch("agents.issuer.acapy_v2.requests.post") as mock_post,
+            patch("agents.issuer.acapy_v2.requests.get") as mock_get,
+        ):
             mock_invitation_response = MagicMock()
             mock_invitation_response.json.return_value = {
                 "invi_msg_id": "test-msg-id",
@@ -168,9 +168,7 @@ class TestAcapyV2IssuerBaseMethods:
             mock_post.return_value = mock_invitation_response
 
             mock_conn_response = MagicMock()
-            mock_conn_response.json.return_value = {
-                "results": [{"connection_id": "test-conn-id"}]
-            }
+            mock_conn_response.json.return_value = {"results": [{"connection_id": "test-conn-id"}]}
             mock_get.return_value = mock_conn_response
 
             result = self.issuer.get_invite()

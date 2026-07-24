@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,9 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 class TestAcapyIssuerUnit:
     @pytest.fixture(autouse=True)
     def setup_issuer(self):
-        import json
         from agents.issuer.acapy import AcapyIssuer
-        from models import AnonCredsFilter, IndyFilter
 
         self.issuer = AcapyIssuer()
         self.issuer.agent_url = "http://localhost:8150"
@@ -142,8 +140,10 @@ class TestAcapyIssuerBaseMethods:
             assert self.issuer.is_up() is False
 
     def test_get_invite_returns_connection_id(self):
-        with patch("agents.issuer.acapy.requests.post") as mock_post, \
-             patch("agents.issuer.acapy.requests.get") as mock_get:
+        with (
+            patch("agents.issuer.acapy.requests.post") as mock_post,
+            patch("agents.issuer.acapy.requests.get") as mock_get,
+        ):
             mock_invitation_response = MagicMock()
             mock_invitation_response.json.return_value = {
                 "invi_msg_id": "test-msg-id",
@@ -152,9 +152,7 @@ class TestAcapyIssuerBaseMethods:
             mock_post.return_value = mock_invitation_response
 
             mock_conn_response = MagicMock()
-            mock_conn_response.json.return_value = {
-                "results": [{"connection_id": "test-conn-id"}]
-            }
+            mock_conn_response.json.return_value = {"results": [{"connection_id": "test-conn-id"}]}
             mock_get.return_value = mock_conn_response
 
             result = self.issuer.get_invite()

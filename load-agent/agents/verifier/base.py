@@ -24,7 +24,11 @@ class BaseVerifier(BaseAgent):
         self.cred_def_id = Settings.CRED_DEF_ID
         self.cred_attributes = Settings.CRED_ATTR
 
-        print(f"[{self.__class__.__name__}] VERIFIED_TIMEOUT_SECONDS = {self.verifiedTimeoutSeconds} (from env: {os.getenv('VERIFIED_TIMEOUT_SECONDS', 'NOT SET')})")
+        env_val = os.getenv("VERIFIED_TIMEOUT_SECONDS", "NOT SET")
+        print(
+            f"[{self.__class__.__name__}] VERIFIED_TIMEOUT_SECONDS = "
+            f"{self.verifiedTimeoutSeconds} (from env: {env_val})"
+        )
 
     @abstractmethod
     def request_verification(self, connection_id):

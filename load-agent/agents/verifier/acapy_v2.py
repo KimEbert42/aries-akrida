@@ -3,18 +3,18 @@ from json.decoder import JSONDecodeError
 
 import requests
 from models import (
-    AnonCredsPresReq,
     AnonCredsFilter,
-    IndyPresReq,
-    ProofRequest,
+    AnonCredsPresReq,
     Filter,
     IndyFilter,
+    IndyPresReq,
+    ProofRequest,
 )
 from models import RequestPresentationV2 as RequestPresentation
 from settings import Settings
 
-from .base import BaseVerifier
 from ..base_acapy import BaseAcapyAgent
+from .base import BaseVerifier
 
 
 class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
@@ -25,15 +25,13 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
             self.filter = AnonCredsFilter(anoncreds=Filter(cred_def_id=self.cred_def_id))
         else:
             self.filter = IndyFilter(indy=Filter(cred_def_id=self.cred_def_id))
-        
+
     def get_presentation_request(self):
         proof_request = ProofRequest(
             name="PerfScore",
             requested_attributes={
-                item["name"]: {
-                    "name": item["name"],
-                    "restrictions": [{"cred_def_id": self.cred_def_id}]
-                    } for item in self.cred_attributes
+                item["name"]: {"name": item["name"], "restrictions": [{"cred_def_id": self.cred_def_id}]}
+                for item in self.cred_attributes
             },
             requested_predicates={},
             version="1.0",
@@ -57,9 +55,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
         try:
             return r.json()
         except JSONDecodeError:
-            raise Exception(
-                "Encountered JSONDecodeError while parsing the request: ", r.text
-            )
+            raise Exception("Encountered JSONDecodeError while parsing the request: ", r.text) from None
 
     def request_verification(self, connection_id):
 
@@ -77,9 +73,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
         try:
             return r.json()["pres_ex_id"]
         except JSONDecodeError:
-            raise Exception(
-                "Encountered JSONDecodeError while parsing the request: ", r.text
-            )
+            raise Exception("Encountered JSONDecodeError while parsing the request: ", r.text) from None
 
     def verify_verification(self, pres_ex_id):
         try:
@@ -89,9 +83,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                     headers=self.headers,
                 )
                 if r.status_code != 200:
-                    raise Exception(
-                        f"Failed to get presentation record: status {r.status_code}, body: {r.text}"
-                    )
+                    raise Exception(f"Failed to get presentation record: status {r.status_code}, body: {r.text}")
                 presentation_json = r.json()
                 state = presentation_json["state"]
                 if state == "done" or state == "abandoned":
@@ -124,22 +116,17 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                     )
                 verified = r_verify.json()["verified"]
             elif state == "abandoned":
-                raise Exception(
-                    f"Presentation exchange {pres_ex_id} is in abandoned state"
-                )
+                raise Exception(f"Presentation exchange {pres_ex_id} is in abandoned state")
             else:
-                raise Exception(
-                    f"Unexpected presentation state after polling: '{state}'"
-                )
+                raise Exception(f"Unexpected presentation state after polling: '{state}'")
 
             if verified is not True:
-                raise AssertionError(
-                    f"Presentation was not successfully verified. Presentation in state {state}"
-                )
+                raise AssertionError(f"Presentation was not successfully verified. Presentation in state {state}")
 
             return True
 
         except JSONDecodeError as e:
+            resp_text = r.text if "r" in locals() else "N/A"
             raise Exception(
-                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {r.text if 'r' in locals() else 'N/A'}"
-            )
+                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {resp_text}"
+            ) from e

@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,10 +22,12 @@ class TestAcapyV2Verifier:
         monkeypatch.setenv("END_PORT", "10500")
 
         from settings import Settings
+
         monkeypatch.setattr(Settings, "VERIFIED_TIMEOUT_SECONDS", 2)
         monkeypatch.setattr(Settings, "IS_ANONCREDS", False)
 
         from agents.verifier.acapy_v2 import AcapyVerifier
+
         self.verifier = AcapyVerifier()
         self.verifier.agent_url = "http://localhost:8150"
         self.verifier.headers = {"X-API-Key": "test-key", "Content-Type": "application/json"}

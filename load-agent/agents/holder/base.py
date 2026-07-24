@@ -1,8 +1,7 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from settings import Settings
 
-from abc import ABC, abstractmethod
 
 class BaseHolder(ABC):
     """

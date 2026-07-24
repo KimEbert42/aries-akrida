@@ -5,8 +5,8 @@ import requests
 from models import ProofRequest, RequestPresentationV1
 from settings import Settings
 
-from .base import BaseVerifier
 from ..base_acapy import BaseAcapyAgent
+from .base import BaseVerifier
 
 
 class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
@@ -14,9 +14,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
         super().__init__()
         self.proof_request = ProofRequest(
             name="PerfScore",
-            requested_attributes={
-                item["name"]: {"name": item["name"]} for item in Settings.CRED_ATTR
-            },
+            requested_attributes={item["name"]: {"name": item["name"]} for item in Settings.CRED_ATTR},
             requested_predicates={},
             version="1.0",
         )
@@ -38,9 +36,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                 raise Exception("Request was not successful: ", r.content)
             presentation_request = r.json()
         except JSONDecodeError:
-            raise Exception(
-                "Encountered JSONDecodeError while parsing the request: ", r.text
-            )
+            raise Exception("Encountered JSONDecodeError while parsing the request: ", r.text) from None
 
         return presentation_request
 
@@ -63,9 +59,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                 raise Exception("Request was not successful: ", r.content)
             presentation_request = r.json()
         except JSONDecodeError:
-            raise Exception(
-                "Encountered JSONDecodeError while parsing the request: ", r.text
-            )
+            raise Exception("Encountered JSONDecodeError while parsing the request: ", r.text) from None
 
         return presentation_request["presentation_exchange_id"]
 
@@ -77,9 +71,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                     headers=self.headers,
                 )
                 if r.status_code != 200:
-                    raise Exception(
-                        f"Failed to get presentation record: status {r.status_code}, body: {r.text}"
-                    )
+                    raise Exception(f"Failed to get presentation record: status {r.status_code}, body: {r.text}")
                 presentation_record = r.json()
                 presentation_state = presentation_record["state"]
 
@@ -102,13 +94,9 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
             presentation_state = presentation_record["state"]
 
             if presentation_state == "abandoned":
-                raise Exception(
-                    f"Presentation exchange {presentation_exchange_id} is in abandoned state"
-                )
+                raise Exception(f"Presentation exchange {presentation_exchange_id} is in abandoned state")
             if presentation_state == "declined":
-                raise Exception(
-                    f"Presentation exchange {presentation_exchange_id} is in declined state"
-                )
+                raise Exception(f"Presentation exchange {presentation_exchange_id} is in declined state")
 
             verified = presentation_record.get("verified")
             if isinstance(verified, str):
@@ -119,8 +107,9 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
                 )
 
         except JSONDecodeError as e:
+            resp_text = r.text if "r" in locals() else "N/A"
             raise Exception(
-                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {r.text if 'r' in locals() else 'N/A'}"
-            )
+                f"Encountered JSONDecodeError while getting the presentation record: {e}. Response text: {resp_text}"
+            ) from e
 
         return True

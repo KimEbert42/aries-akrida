@@ -11,8 +11,8 @@ class BaseAcapyAgent(BaseAgent):
     """
 
     def __init__(self):
-        self.agent_url = None # Set in subclass __init__
-        self.headers = None # Set in subclass __init__
+        self.agent_url = None  # Set in subclass __init__
+        self.headers = None  # Set in subclass __init__
 
     def get_invite(self):
         """
@@ -25,7 +25,7 @@ class BaseAcapyAgent(BaseAgent):
             f"{self.agent_url}/out-of-band/create-invitation?auto_accept=true",
             json={
                 "handshake_protocols": Settings.HANDSHAKE_PROTOCOLS,
-                },
+            },
             headers=self.headers,
         )
         invitation = r.json()

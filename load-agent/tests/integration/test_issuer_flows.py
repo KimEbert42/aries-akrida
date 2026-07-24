@@ -84,9 +84,7 @@ class TestCredentialIssuanceV2:
 @pytest.mark.integration
 class TestCredentialRevocation:
     @pytest.mark.skip(reason="V1 issuance endpoint not available in this ACA-Py version")
-    def test_credential_revocation_v1(
-        self, issuer_agent, ledger_config, established_connection, test_attributes
-    ):
+    def test_credential_revocation_v1(self, issuer_agent, ledger_config, established_connection, test_attributes):
         result = issuer_agent.issue_credential_v1(
             connection_id=established_connection["issuer_connection_id"],
             cred_def_id=ledger_config["cred_def_id"],
@@ -103,9 +101,7 @@ class TestCredentialRevocation:
         )
 
     @pytest.mark.skip(reason="Revocation requires cred_def with support_revocation=True and tails server")
-    def test_credential_revocation_v2_indy(
-        self, issuer_agent, ledger_config, established_connection, test_attributes
-    ):
+    def test_credential_revocation_v2_indy(self, issuer_agent, ledger_config, established_connection, test_attributes):
         result = issuer_agent.issue_credential_v2(
             connection_id=established_connection["issuer_connection_id"],
             cred_def_id=ledger_config["cred_def_id"],
@@ -127,7 +123,7 @@ class TestCredentialRevocation:
 class TestConnectionManagement:
     def test_multiple_connections(self, issuer_agent, holder_agent, unique_prefix):
         connections = []
-        for i in range(3):
+        for _ in range(3):
             invite = issuer_agent.get_invite()
             holder_conn_id = holder_agent.receive_invitation(invite["invitation"])
             connections.append(invite["connection_id"])

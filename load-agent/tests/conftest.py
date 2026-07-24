@@ -3,8 +3,6 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from typing import Optional
-from unittest.mock import MagicMock
 
 import pytest
 import requests
@@ -63,7 +61,7 @@ class AcapyTestAgent:
             time.sleep(2)
         return False
 
-    def get_wallet_did(self) -> Optional[dict]:
+    def get_wallet_did(self) -> dict | None:
         try:
             r = requests.get(f"{self.base_url}/wallet/did", headers=self.headers)
             if r.status_code == 200:
@@ -169,7 +167,7 @@ class AcapyTestAgent:
 
 class SelfServeClient:
     def __init__(self):
-        self.session: Optional[ClientSession] = None
+        self.session: ClientSession | None = None
 
     async def onboard(self, did: str, verkey: str, network: str = "testnet") -> dict:
         if not self.session:
@@ -193,6 +191,7 @@ class SelfServeClient:
             body = await resp.text()
             try:
                 import json
+
                 return json.loads(body) if body else {}
             except json.JSONDecodeError:
                 return {}
@@ -233,12 +232,14 @@ def genesis_url():
 @pytest.fixture(scope="session")
 def test_wallet_name():
     import uuid
+
     return f"test-issuer-{uuid.uuid4().hex[:8]}"
 
 
 @pytest.fixture(scope="session")
 def test_schema_name():
     import uuid
+
     return f"TestSchema-{uuid.uuid4().hex[:8]}"
 
 
@@ -334,8 +335,8 @@ def mock_issuer():
 
 @pytest.fixture
 def mock_settings(monkeypatch):
-    import sys
     import os
+    import sys
 
     test_settings = {
         "ISSUER_URL": "http://localhost:8150",
@@ -348,8 +349,11 @@ def mock_settings(monkeypatch):
     }
 
     for key, value in test_settings.items():
-        monkeypatch.setenv(key, str(value) if not isinstance(value, (list, dict)) else (
-            json.dumps(value) if isinstance(value, list) else value
-        ))
+        monkeypatch.setenv(
+            key,
+            str(value)
+            if not isinstance(value, (list, dict))
+            else (json.dumps(value) if isinstance(value, list) else value),
+        )
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

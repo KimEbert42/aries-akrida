@@ -1,13 +1,12 @@
 import json
 import os
+import select
 import signal
+import subprocess
 import sys
 
-import select
-import subprocess
-
-from settings import Settings
 from portmanager import portmanager
+from settings import Settings
 
 from .base import BaseHolder
 
@@ -21,7 +20,7 @@ class CredoHolder(BaseHolder):
         self.errors = 0
         self.with_mediation = None
 
-    def start(self, withMediation=True, reinstantiate=False):
+    def start(self, with_mediation=True, reinstantiate=False):
         if self.port is not None:
             portmanager.return_port(self.port)
             self.port = None
@@ -42,7 +41,7 @@ class CredoHolder(BaseHolder):
             self.run_command(
                 {
                     "cmd": "start",
-                    "withMediation": withMediation,
+                    "withMediation": with_mediation,
                     "port": self.port,
                     "agentConfig": self.agent_config if reinstantiate else None,
                 }

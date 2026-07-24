@@ -1,7 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
 
-from locustMediatorIssue import UserBehaviour, Issue
+import pytest
+from locustMediatorIssue import Issue, UserBehaviour
 
 
 class TestUserBehaviour:

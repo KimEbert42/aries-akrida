@@ -1,10 +1,8 @@
 import asyncio
-import json
 import os
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 import pytest
 import requests
@@ -100,7 +98,7 @@ class DockerAgent:
         if r.status_code not in (200, 201):
             raise Exception(f"Failed to set public DID: {r.text}")
 
-    def get_public_did(self) -> Optional[dict]:
+    def get_public_did(self) -> dict | None:
         try:
             r = requests.get(f"{self.admin_url}/wallet/did/public", headers=self.headers)
             if r.status_code == 200:
@@ -206,7 +204,9 @@ class DockerAgent:
         r.raise_for_status()
         return r.json()
 
-    def issue_credential_v2(self, connection_id: str, cred_def_id: str, attributes: list, anoncreds: bool = False) -> dict:
+    def issue_credential_v2(
+        self, connection_id: str, cred_def_id: str, attributes: list, anoncreds: bool = False
+    ) -> dict:
         filter_type = "anoncreds" if anoncreds else "indy"
         r = requests.post(
             f"{self.admin_url}/issue-credential-2.0/send",
@@ -262,6 +262,7 @@ async def onboard_to_ledger(agent: DockerAgent) -> dict:
     verkey = did_info["verkey"]
 
     import aiohttp
+
     async with aiohttp.ClientSession() as session:
         async with session.post(
             "https://selfserve.indiciotech.io/nym",
@@ -308,8 +309,11 @@ def start_acapy_container(
     ]
 
     cmd = [
-        "docker", "run", "-d",
-        "--name", container_name,
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        container_name,
         "--network=host",
     ]
     for env in env_vars:
@@ -364,6 +368,7 @@ def admin_api_key():
 @pytest.fixture(scope="session")
 def unique_prefix():
     import uuid
+
     return uuid.uuid4().hex[:8]
 
 
@@ -432,10 +437,12 @@ def established_connection(issuer_agent, holder_agent):
 
     holder_conn_id = holder_agent.receive_invitation(issuer_invite["invitation"])
 
-    assert issuer_agent.wait_for_connection_active(issuer_invite["connection_id"], timeout=60), \
+    assert issuer_agent.wait_for_connection_active(issuer_invite["connection_id"], timeout=60), (
         "Connection did not become active"
-    assert holder_agent.wait_for_connection_active(holder_conn_id, timeout=60), \
+    )
+    assert holder_agent.wait_for_connection_active(holder_conn_id, timeout=60), (
         "Connection did not become active on holder"
+    )
 
     return {
         "issuer_connection_id": issuer_invite["connection_id"],

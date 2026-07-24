@@ -41,4 +41,3 @@ class BaseIssuer(BaseAgent):
             connection_id (str): The connection ID of the holder.
             credential_exchange_id (str): The credential exchange ID to revoke.
         """
-

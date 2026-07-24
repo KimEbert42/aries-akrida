@@ -11,7 +11,7 @@ NUMBER_OF_CONNECTIONS = int(os.getenv("CONNECTIONS_PER_AGENT", 1))
 class ConnectionUserBehaviour(SequentialTaskSet):
     def on_start(self):
         # Start up the client with or without mediation once per user
-        self.client.startup(withMediation=WITH_MEDIATION)
+        self.client.startup(with_mediation=WITH_MEDIATION)
         self.invites = []
 
     def on_stop(self):

@@ -47,6 +47,9 @@ jobs:
           cache: "yarn"
           cache-dependency-path: load-agent/yarn.lock
 
+      - name: Enable Corepack for Yarn 4
+        run: corepack enable
+
       - name: Install JS dependencies
         run: yarn install --frozen-lockfile
 
