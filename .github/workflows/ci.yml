@@ -46,9 +46,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "20"
-          cache: "yarn"
-          cache-dependency-path: load-agent/yarn.lock
-          corepack: true
+
+      - name: Enable Corepack for Yarn 4
+        run: corepack enable
+
+      - name: Restore yarn cache
+        uses: actions/cache@v4
+        with:
+          path: load-agent/.yarn/cache
+          key: yarn-${{ hashFiles('load-agent/yarn.lock') }}
+          restore-keys: yarn-
 
       - name: Install JS dependencies
         run: yarn install --frozen-lockfile
