@@ -10,6 +10,12 @@ class PortManager:
     def get_port(self):
         self.lock.acquire()
         try:
+            if not self.ports:
+                raise RuntimeError(
+                    f"Port pool exhausted ({Settings.START_PORT}-{Settings.END_PORT}). "
+                    f"All {len(range(Settings.START_PORT, Settings.END_PORT))} ports in use. "
+                    "Increase END_PORT in settings."
+                )
             port = self.ports.pop(0)
             return port
         finally:

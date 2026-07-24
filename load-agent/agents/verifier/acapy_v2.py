@@ -46,7 +46,7 @@ class AcapyVerifier(BaseVerifier, BaseAcapyAgent):
 
     def create_connectionless_request(self):
         r = requests.post(
-            f"{self.agent_url}/present-proof-2.0/send-request",
+            f"{self.agent_url}/present-proof-2.0/create-request",
             headers=self.headers,
             json=RequestPresentation(
                 presentation_request=self.get_presentation_request(),

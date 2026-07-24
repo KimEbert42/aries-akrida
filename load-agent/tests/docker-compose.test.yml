@@ -28,9 +28,6 @@ services:
       - ACAPY_AUTO_ACCEPT_REQUESTS=true
       - ACAPY_INBOUND_TRANSPORT=http,0.0.0.0,8151
       - ACAPY_OUTBOUND_TRANSPORT=http
-    ports:
-      - "8150:8150"
-      - "8151:8151"
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:8150/status | grep -q 'connected'"]
       interval: 10s
@@ -50,9 +47,6 @@ services:
       - ACAPY_AUTO_ACCEPT_REQUESTS=true
       - ACAPY_INBOUND_TRANSPORT=http,0.0.0.0,8151
       - ACAPY_OUTBOUND_TRANSPORT=http
-    ports:
-      - "9160:8150"
-      - "9161:8151"
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:8150/status | grep -q 'connected'"]
       interval: 10s

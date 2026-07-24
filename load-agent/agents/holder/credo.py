@@ -56,16 +56,13 @@ class CredoHolder(BaseHolder):
             self.shutdown()
             raise e
 
-    def shutdown(self):
+    def _cleanup_agent(self):
+        if self.agent is None:
+            return
         try:
-            if self.port:
-                portmanager.return_port(self.port)
-                self.port = None
-
             self.agent.stdin.write(json.dumps({"cmd": "shutdown"}))
             self.agent.stdin.write("\n")
             self.agent.stdin.flush()
-
             self.agent.communicate(timeout=Settings.SHUTDOWN_TIMEOUT_SECONDS)
         except Exception:
             pass
@@ -75,6 +72,12 @@ class CredoHolder(BaseHolder):
             except Exception:
                 pass
             self.agent = None
+
+    def shutdown(self):
+        if self.port:
+            portmanager.return_port(self.port)
+            self.port = None
+        self._cleanup_agent()
 
     def run_command(self, command):
         try:

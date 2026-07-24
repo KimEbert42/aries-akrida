@@ -8,14 +8,13 @@ load_dotenv()
 class Settings(object):
     
     # Load agent settings
-    START_PORT = json.loads(os.getenv("START_PORT"))
-    END_PORT = json.loads(os.getenv("END_PORT"))
-    
+    START_PORT = json.loads(os.getenv("START_PORT", "10000"))
+    END_PORT = json.loads(os.getenv("END_PORT", "10500"))
 
     # Load test data
-    SCHEMA_ID: str = os.getenv("SCHEMA")
-    CRED_DEF_ID: str = os.getenv("CRED_DEF")
-    CRED_ATTR: dict = json.loads(os.getenv("CRED_ATTR"))
+    SCHEMA_ID: str = os.getenv("SCHEMA", "")
+    CRED_DEF_ID: str = os.getenv("CRED_DEF", "")
+    CRED_ATTR: dict = json.loads(os.getenv("CRED_ATTR", "[{}]"))
     
     # Load test parameters
     SHUTDOWN_TIMEOUT_SECONDS: int = 10
@@ -41,14 +40,14 @@ class Settings(object):
     VERIFIER_TYPE: str = os.getenv("VERIFIER_TYPE", "acapy")
     # VERIFIER_API_KEY: str = os.getenv("VERIFIER_API_KEY", None)
     # VERIFIER_API_TOKEN: str = os.getenv("VERIFIER_API_TOKEN", None)
-    VERIFIER_HEADERS: str = json.loads(os.getenv("VERIFIER_HEADERS"))
+    VERIFIER_HEADERS: str = json.loads(os.getenv("VERIFIER_HEADERS", "{}"))
 
     # Issuer
     ISSUER_URL: str = os.getenv("ISSUER_URL")
     ISSUER_TYPE: str = os.getenv("ISSUER_TYPE", "acapy")
     # ISSUER_API_KEY: str = os.getenv("ISSUER_API_KEY", None)
     # ISSUER_API_TOKEN: str = os.getenv("ISSUER_API_TOKEN", None)
-    ISSUER_HEADERS: str = json.loads(os.getenv("ISSUER_HEADERS"))
+    ISSUER_HEADERS: str = json.loads(os.getenv("ISSUER_HEADERS", "{}"))
 
     # Holder
     HOLDER_URL: str = os.getenv("HOLDER_URL")
