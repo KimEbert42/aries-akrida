@@ -1,6 +1,7 @@
 # Add the `ai/` folder, AGENTS.md and CLAUDE.md
 
 Branch: `feature/ai`
+Status: **Completed** (2026-11-05), implemented in commit `3732aff`, pushed to the `kim` remote.
 
 ## Goal
 
@@ -30,11 +31,18 @@ source of truth about how to work in this repo, modelled on `proven-docker`'s `a
 - Rewriting README/DEVREADME/docs.
 - Adding skills, hooks or `.claude/settings.json`.
 
+## Outcome
+
+Delivered as planned: `ai/plans/` (four status folders + README), `ai/review/README.md`, root
+`AGENTS.md`, and `CLAUDE.md` (`@AGENTS.md` import). Commit is signed off (DCO) per project rules, and
+`AGENTS.md` records that rule.
+
 ## Verification
 
-- `AGENTS.md` commands match `.github/workflows/ci.yml` and `pyproject.toml`.
-- Every path named in `AGENTS.md` exists.
-- `ruff`/tests unaffected (docs-only change).
+- `AGENTS.md` commands were written from `.github/workflows/ci.yml` and `pyproject.toml`; they were
+  not executed as part of this change.
+- Paths and loader names referenced in `AGENTS.md` were checked to exist.
+- Docs-only change; ruff/tests unaffected and not run.
 
 ## Follow-ups
 
